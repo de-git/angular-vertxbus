@@ -50,9 +50,9 @@ module.exports = function (grunt) {
       temp: 'temp/'
     },
     watch: {
-      'coffee-src': {
-        files: ['src/**/*.coffee'],
-        tasks: ['coffee:src']
+      'babel-src': {
+        files: ['src/**/*.js'],
+        tasks: ['concat:all', 'babel']
       },
       'coffee-test': {
         files: ['test/**/*.coffee'],
@@ -64,7 +64,7 @@ module.exports = function (grunt) {
       }
     },
     jshint: {
-      all: ['Gruntfile.js', 'src/**/*.js', 'test/unit/*.js'],
+      all: ['Gruntfile.js', 'test/unit/*.js'],
       options: {
         eqeqeq: true,
         globals: {
@@ -73,16 +73,6 @@ module.exports = function (grunt) {
       }
     },
     coffee: {
-      src: {
-        options: {
-          join: true
-        },
-        files: {
-          'temp/src/angular-vertxbus-adapter.js': [
-            'src/module.coffee', 'src/wrapper.coffee', 'src/service.coffee'
-          ]
-        }
-      },
       test: {
         options: {
           bare: true
@@ -94,19 +84,79 @@ module.exports = function (grunt) {
         ext: '.js'
       }
     },
-    concat: {
-      src: {
-        options: {
-          banner: '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - ' +
-            '<%= grunt.template.today("yyyy-mm-dd") %>\n' +
-            '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
-            '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
-            ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n'
-        },
-        src: ['temp/src/**/*.js'],
-        dest: 'dist/angular-vertxbus.js'
+    babel: {
+      options: {
+          sourceMap: false
       },
-      lib: {
+      src: {
+        expand: true,
+        cwd: 'src/',
+        src: ['**/*.js'],
+        dest: 'temp/',
+        ext: '.js5.js'
+      },
+      temp: {
+        expand: true,
+        cwd: 'temp/',
+        src: ['*.js6.js'],
+        dest: 'temp/',
+        ext: '.js5.js'
+      }
+    },
+    umd: {
+      sockjs: {
+        options: {
+          src: [
+            'bower_components/sockjs-client/dist/sockjs.js'
+          ],
+          dest: 'dist/sockjs.js',
+          objectToExport: 'SockJS',
+          indent: 2
+        }
+      },
+      vertxbus: {
+        options: {
+          src: [
+            'bower_components/vertxbus.js/index.js'
+          ],
+          dest: 'dist/vertxbus.js',
+          objectToExport: 'vertx',
+          indent: 2,
+          deps: {
+            'default': ['SockJS'],
+            amd: ['sockjs'],
+            cjs: ['sockjs'],
+            global: ['SockJS']
+          }
+        }
+      },
+      dist: {
+        options: {
+          src: [
+            'temp/all.js5.js'
+          ],
+          dest: 'dist/angular-vertxbus.js',
+          objectToExport: '"knalli.angular-vertxbus"',
+          indent: 2,
+          deps: {
+            'default': ['angular', 'vertx'],
+            amd: ['angular', 'vertxbus'],
+            cjs: ['angular', 'vertxbus'],
+            global: ['angular', 'vertx']
+          }
+        }
+      }
+    },
+    concat: {
+      all: {
+        src: [
+          'src/vertxbus-module.js',
+          'src/vertxbus-wrapper.js',
+          'src/vertxbus-service.js'
+        ],
+        dest: 'temp/all.js6.js'
+      },
+      license: {
         options: {
           banner: '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - ' +
             '<%= grunt.template.today("yyyy-mm-dd") %>\n' +
@@ -114,18 +164,17 @@ module.exports = function (grunt) {
             '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
             ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n'
         },
-        src: [
-          'build-data-for-requirejs/angular-vertxbus_start.txt',
-          'temp/src/**/*.js',
-          'build-data-for-requirejs/angular-vertxbus_end.txt'
-        ],
-        dest: 'dist/requirejs/angular-vertxbus.js'
+        src: 'dist/angular-vertxbus.js',
+        dest: 'dist/angular-vertxbus.js'
       }
     },
     uglify: {
+      options: {
+        preserveComments: 'some'
+      },
       src: {
         files: {
-          'dist/angular-vertxbus.min.js': '<%= concat.src.dest %>'
+          'dist/angular-vertxbus.min.js': 'dist/angular-vertxbus.js'
         }
       }
     },
@@ -150,13 +199,9 @@ module.exports = function (grunt) {
       options: {
         singleQuotes: true
       },
-      src: {
-        src: '<%= concat.src.dest %>',
-        dest: '<%= concat.src.dest %>'
-      },
-      lib: {
-        src: '<%= concat.lib.dest %>',
-        dest: '<%= concat.lib.dest %>'
+      temp: {
+        src: 'temp/*.js5.js',
+        dest: 'temp/*.js5.js'
       }
     },
 
@@ -164,10 +209,10 @@ module.exports = function (grunt) {
 
   });
 
-  grunt.registerTask('default', ['clean:temp', 'coffee', 'jshint', 'karma:unit']);
-  grunt.registerTask('test', ['coffee', 'jshint', 'karma:unit']);
+  grunt.registerTask('default', ['clean:temp', 'concat:all', 'coffee', 'babel', 'jshint', 'karma:unit']);
+  grunt.registerTask('test', ['concat:all', 'coffee', 'babel', 'jshint', 'karma:unit']);
   grunt.registerTask('install-test', ['bower-install-simple']);
   grunt.registerTask('test-server', ['karma:server']);
-  grunt.registerTask('build', ['clean', 'coffee', 'jshint', 'karma:unit', 'concat', 'ngAnnotate', 'uglify']);
+  grunt.registerTask('build', ['clean', 'concat:all', 'coffee', 'babel', 'jshint', 'karma:unit', 'ngAnnotate', 'umd', 'concat:license', 'uglify']);
   grunt.registerTask('release', ['changelog', 'build']);
 };
