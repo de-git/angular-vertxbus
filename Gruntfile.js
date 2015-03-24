@@ -103,6 +103,49 @@ module.exports = function (grunt) {
         ext: '.js5.js'
       }
     },
+    traceur: {
+      options: {
+        //experimental: true,
+        blockBinding: true,
+        copyRuntime: 'temp/runtime.js'
+      },
+      src: {
+        expand: true,
+        cwd: 'src/',
+        src: ['**/*.js'],
+        dest: 'temp/',
+        ext: '.js5.js'
+      },
+      temp: {
+        expand: true,
+        cwd: 'temp/',
+        src: ['*.js6.js'],
+        dest: 'temp/',
+        ext: '.js5.js'
+      }
+    },
+    es6transpiler: {
+      options: {
+        globals: {
+          'angular': true,
+          'vertx': true
+        }
+      },
+      src: {
+        expand: true,
+        cwd: 'src/',
+        src: ['**/*.js'],
+        dest: 'temp/',
+        ext: '.js5.js'
+      },
+      temp: {
+        expand: true,
+        cwd: 'temp/',
+        src: ['*.js6.js'],
+        dest: 'temp/',
+        ext: '.js5.js'
+      }
+    },
     umd: {
       sockjs: {
         options: {
@@ -184,6 +227,12 @@ module.exports = function (grunt) {
           singleRun: true
         })
       },
+      headless: {
+        options: karmaConfig('karma.conf.js', {
+          singleRun: true,
+          browsers: ['PhantomJS']
+        })
+      },
       server: {
         options: karmaConfig('karma.conf.js', {
           singleRun: false
@@ -209,10 +258,14 @@ module.exports = function (grunt) {
 
   });
 
-  grunt.registerTask('default', ['clean:temp', 'concat:all', 'coffee', 'babel', 'jshint', 'karma:unit']);
-  grunt.registerTask('test', ['concat:all', 'coffee', 'babel', 'jshint', 'karma:unit']);
+  //grunt.registerTask('_tes6-to-es5_', ['babel']);
+  //grunt.registerTask('_tes6-to-es5_', ['traceur']); // TODO requires runtime
+  grunt.registerTask('_tes6-to-es5_', ['es6transpiler']);
+
+  grunt.registerTask('default', ['clean:temp', 'concat:all', 'coffee', '_tes6-to-es5_', 'jshint', 'karma:unit']);
+  grunt.registerTask('test', ['concat:all', 'coffee', '_tes6-to-es5_', 'jshint', 'karma:unit']);
   grunt.registerTask('install-test', ['bower-install-simple']);
   grunt.registerTask('test-server', ['karma:server']);
-  grunt.registerTask('build', ['clean', 'concat:all', 'coffee', 'babel', 'jshint', 'karma:unit', 'ngAnnotate', 'umd', 'concat:license', 'uglify']);
+  grunt.registerTask('build', ['clean', 'concat:all', 'coffee', '_tes6-to-es5_', 'jshint', 'karma:unit', 'ngAnnotate', 'umd', 'concat:license', 'uglify']);
   grunt.registerTask('release', ['changelog', 'build']);
 };

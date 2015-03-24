@@ -204,6 +204,7 @@ angular.module('knalli.angular-vertxbus')
       messageBuffer,
       loginRequired
     }) {
+      super()
       this.$rootScope = $rootScope
       this.$interval = $interval
       this.$log = $log

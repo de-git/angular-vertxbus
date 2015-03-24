@@ -191,6 +191,7 @@ angular.module('knalli.angular-vertxbus')
       sockjsOptions,
       messageBuffer
     }) {
+      super()
        // actual EventBus type
       this.EventBus = EventBus
       this.$timeout = $timeout
